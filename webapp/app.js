@@ -574,7 +574,7 @@ function generateRequestId() {
 }
 
 function generateUniqueAmount(baseUsdt) {
-    const suffix = Math.floor(Math.random() * 90) + 10; // 10-99
+    const suffix = Math.floor(Math.random() * 9) + 1; // 1-9
     return parseFloat((baseUsdt + suffix / 100).toFixed(2));
 }
 
