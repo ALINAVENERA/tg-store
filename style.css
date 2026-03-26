@@ -1142,14 +1142,13 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: var(--tabbar-height);
     padding-bottom: var(--safe-bottom);
     background: rgba(0, 0, 0, 0.92);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--border);
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-around;
     z-index: 100;
 }
@@ -1160,7 +1159,7 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 10px 0;
+    padding: 12px 0;
     background: none;
     border: none;
     color: var(--text3);
@@ -1171,7 +1170,6 @@ html, body {
     transition: all 0.2s;
     min-width: 56px;
     flex: 1;
-    height: 100%;
     -webkit-tap-highlight-color: transparent;
 }
 
