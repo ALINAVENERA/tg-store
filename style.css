@@ -1498,9 +1498,26 @@ html, body {
     margin: 16px 0;
 }
 
-.payment-qr canvas, .payment-qr img {
-    border-radius: var(--radius);
-    border: 3px solid var(--accent);
+.payment-qr-wrap {
+    position: relative;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.12);
+}
+
+.payment-qr-wrap img {
+    display: block;
+    border-radius: 12px;
+}
+
+.payment-qr-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .payment-warning {

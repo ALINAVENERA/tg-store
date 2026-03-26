@@ -594,7 +594,12 @@ function openPaymentModal(baseUsdt) {
     // QR Code (using free API)
     const qrData = WALLET_ADDRESS;
     const qrContainer = $('#payQR');
-    qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}&bgcolor=111111&color=fbbf24" alt="QR" width="180" height="180">`;
+    qrContainer.innerHTML = `
+        <div class="payment-qr-wrap">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}&bgcolor=111111&color=fbbf24&margin=0" alt="QR" width="180" height="180">
+            <div class="payment-qr-label">Сканируйте для оплаты</div>
+        </div>
+    `;
 
     // Open modal
     $('#paymentModal').classList.add('open');
