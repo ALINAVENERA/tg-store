@@ -6,28 +6,28 @@
 }
 
 :root {
-    --bg: #080b14;
-    --bg2: #0d1117;
-    --surface: #111827;
-    --surface2: #1a2332;
-    --surface3: #243044;
-    --border: rgba(250, 204, 21, 0.08);
-    --border2: rgba(250, 204, 21, 0.15);
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text3: #64748b;
-    --accent: #facc15;
-    --accent2: #eab308;
-    --accent-dim: rgba(250, 204, 21, 0.1);
-    --accent-glow: rgba(250, 204, 21, 0.25);
-    --green: #34d399;
-    --green-dim: rgba(52, 211, 153, 0.1);
-    --orange: #fb923c;
-    --orange-dim: rgba(251, 146, 60, 0.1);
-    --purple: #a78bfa;
-    --purple-dim: rgba(167, 139, 250, 0.1);
-    --red: #f87171;
-    --red-dim: rgba(248, 113, 113, 0.1);
+    --bg: #000000;
+    --bg2: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --surface3: #252525;
+    --border: rgba(250, 204, 21, 0.1);
+    --border2: rgba(250, 204, 21, 0.2);
+    --text: #f5f5f5;
+    --text2: #a3a3a3;
+    --text3: #666666;
+    --accent: #fbbf24;
+    --accent2: #f59e0b;
+    --accent-dim: rgba(251, 191, 36, 0.1);
+    --accent-glow: rgba(251, 191, 36, 0.3);
+    --green: #fbbf24;
+    --green-dim: rgba(251, 191, 36, 0.1);
+    --orange: #f59e0b;
+    --orange-dim: rgba(245, 158, 11, 0.1);
+    --purple: #fcd34d;
+    --purple-dim: rgba(252, 211, 77, 0.1);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.1);
     --radius: 14px;
     --radius-sm: 10px;
     --sidebar-width: 260px;
@@ -72,7 +72,7 @@ html, body {
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: rgba(8, 11, 20, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--border);
@@ -113,13 +113,13 @@ html, body {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), #ca8a04);
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 900;
     font-size: 18px;
-    color: #080b14;
+    color: #000000;
 }
 
 .logo-text {
@@ -245,8 +245,8 @@ html, body {
     margin-left: auto;
     padding: 2px 8px;
     border-radius: 6px;
-    background: var(--green);
-    color: var(--bg);
+    background: var(--accent);
+    color: #000;
     font-size: 11px;
     font-weight: 700;
 }
@@ -853,8 +853,8 @@ html, body {
     padding: 16px;
     border-radius: var(--radius);
     border: none;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    color: var(--bg);
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: #000;
     font-size: 16px;
     font-weight: 700;
     font-family: inherit;
@@ -963,7 +963,7 @@ html, body {
     right: 0;
     height: var(--tabbar-height);
     padding-bottom: var(--safe-bottom);
-    background: rgba(8, 11, 20, 0.9);
+    background: rgba(0, 0, 0, 0.92);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--border);
@@ -1132,8 +1132,8 @@ html, body {
     padding: 16px;
     border-radius: var(--radius);
     border: none;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    color: var(--bg);
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: #000;
     font-size: 16px;
     font-weight: 700;
     font-family: inherit;
