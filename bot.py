@@ -1,21 +1,29 @@
 import json
 import logging
 import time
+import threading
 import requests
 
-# ═══════════════════════════════════
-#  CONFIG
-# ═══════════════════════════════════
-BOT_TOKEN = "8680838753:AAEk6cBkRrEaCb3g-s59tzl3Ooioabue-08"
-WEBAPP_URL = "https://alinavenera.github.io/tg-store"
-API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+from config import BOT_TOKEN, WEBAPP_URL, API, WALLET_ADDRESS, USDT_RATE, CHECK_INTERVAL
+from db import (
+    init_db, ensure_user, get_balance, generate_unique_amount,
+    create_topup_request, find_pending_by_amount, is_tx_used,
+    mark_paid, expire_old_requests
+)
+from trongrid import (
+    check_incoming_transfers, parse_usdt_amount,
+    load_last_timestamp, save_last_timestamp
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 
+# ═══════════════════════════════════
+#  TELEGRAM API HELPERS
+# ═══════════════════════════════════
 def api_call(method, **kwargs):
-    """Вызов Telegram Bot API"""
+    """Telegram Bot API call."""
     try:
         r = requests.post(f"{API}/{method}", json=kwargs, timeout=30)
         data = r.json()
@@ -28,7 +36,7 @@ def api_call(method, **kwargs):
 
 
 def get_updates(offset=None):
-    """Получить обновления (long polling)"""
+    """Long polling."""
     params = {"timeout": 30}
     if offset:
         params["offset"] = offset
@@ -42,7 +50,7 @@ def get_updates(offset=None):
 
 
 def send_message(chat_id, text, reply_markup=None):
-    """Отправить сообщение"""
+    """Send message with HTML parse mode."""
     params = {
         "chat_id": chat_id,
         "text": text,
@@ -57,104 +65,258 @@ def send_message(chat_id, text, reply_markup=None):
 #  HANDLERS
 # ═══════════════════════════════════
 def handle_start(message):
-    """Обработка /start"""
+    """/start command."""
     user = message.get("from", {})
     chat_id = message["chat"]["id"]
     first_name = user.get("first_name", "User")
+    username = user.get("username")
+
+    # Register user in DB
+    ensure_user(chat_id, username, first_name)
+    balance = get_balance(chat_id)
 
     keyboard = {
         "inline_keyboard": [
-            [{"text": "🛒 Открыть магазин", "web_app": {"url": WEBAPP_URL}}],
-            [{"text": "💬 Поддержка", "url": "https://t.me/your_support"}],
+            [{"text": "Open store", "web_app": {"url": WEBAPP_URL}}],
+            [{"text": "Support", "url": "https://t.me/your_support"}],
         ]
     }
 
     text = (
-        f"👋 Привет, <b>{first_name}</b>!\n\n"
-        f"🏪 Добро пожаловать в <b>STORE.APP</b>\n\n"
-        f"💰 Баланс: <b>₽0</b>\n"
-        f"📦 Аккаунтов: <b>0</b>\n"
-        f"🛒 Заказов в работе: <b>0</b>\n"
-        f"✅ Завершённых заказов: <b>0</b>"
+        f"<b>{first_name}</b>, welcome!\n\n"
+        f"<b>STORE.APP</b>\n\n"
+        f"Balance: <b>{balance:,.0f} RUB</b>\n\n"
+        f"/balance - check balance\n"
+        f"/topup - top up instructions"
     )
 
     send_message(chat_id, text, reply_markup=keyboard)
 
 
-def handle_webapp_data(message):
-    """Обработка данных из Mini App"""
+def handle_balance(message):
+    """/balance command."""
     chat_id = message["chat"]["id"]
+    user = message.get("from", {})
+    ensure_user(chat_id, user.get("username"), user.get("first_name"))
+    balance = get_balance(chat_id)
+
+    send_message(chat_id,
+        f"<b>Your balance</b>\n\n"
+        f"<b>{balance:,.0f} RUB</b>\n\n"
+        f"Top up via Mini App or /topup"
+    )
+
+
+def handle_topup_command(message):
+    """/topup command — send instructions."""
+    chat_id = message["chat"]["id"]
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "Open store - Top Up", "web_app": {"url": WEBAPP_URL}}],
+        ]
+    }
+    send_message(chat_id,
+        "<b>Top Up Balance</b>\n\n"
+        "Open the store and go to \"Top Up\" section to create a payment request.\n\n"
+        "Payment method: <b>USDT (TRC-20)</b>",
+        reply_markup=keyboard
+    )
+
+
+def handle_webapp_data(message):
+    """Process data from Mini App."""
+    chat_id = message["chat"]["id"]
+    user = message.get("from", {})
+    ensure_user(chat_id, user.get("username"), user.get("first_name"))
+
     try:
         data = json.loads(message["web_app_data"]["data"])
 
         if data.get("action") == "topup":
-            amount = data.get("amount", 0)
-            send_message(chat_id,
-                f"💳 <b>Пополнение баланса</b>\n\n"
-                f"Сумма: <b>₽{amount:,}</b>\n\n"
-                f"Для оплаты переведите указанную сумму и отправьте скриншот оплаты."
-            )
+            handle_topup_request(chat_id, data)
             return
 
+        # Order
         items = data.get("items", [])
         total = data.get("total", 0)
 
-        text = "🛒 <b>Новый заказ!</b>\n\n"
+        text = "<b>New order!</b>\n\n"
         for item in items:
-            text += f"• {item['name']} × {item['qty']} — ₽{item['price'] * item['qty']:,}\n"
-        text += f"\n💰 <b>Итого: ₽{total:,}</b>"
+            text += f"  {item['name']}  x{item['qty']} - {item['price'] * item['qty']:,} RUB\n"
+        text += f"\n<b>Total: {total:,} RUB</b>"
 
         send_message(chat_id, text)
         logger.info(f"Order from {chat_id}: {data}")
 
     except Exception as e:
         logger.error(f"WebApp data error: {e}")
-        send_message(chat_id, "❌ Ошибка обработки заказа.")
+        send_message(chat_id, "Error processing request.")
 
 
+def handle_topup_request(chat_id, data):
+    """Create topup request and send payment instructions."""
+    base_usdt = data.get("usdt", 0)
+    rub_amount = data.get("rub", 0)
+
+    if base_usdt <= 0:
+        send_message(chat_id, "Invalid amount.")
+        return
+
+    try:
+        # Generate unique amount
+        unique_usdt = generate_unique_amount(base_usdt)
+
+        # Recalculate RUB based on unique amount
+        rub_amount = round(unique_usdt * USDT_RATE)
+
+        # Create request in DB
+        req_id = create_topup_request(chat_id, unique_usdt, rub_amount)
+
+        send_message(chat_id,
+            f"<b>Top Up #{req_id}</b>\n\n"
+            f"Send exactly <b>{unique_usdt} USDT</b> (TRC-20) to:\n\n"
+            f"<code>{WALLET_ADDRESS}</code>\n\n"
+            f"Amount to credit: <b>{rub_amount:,} RUB</b>\n"
+            f"Rate: 1 USDT = {USDT_RATE} RUB\n\n"
+            f"<b>Important: send EXACTLY {unique_usdt} USDT</b>\n"
+            f"Request valid for 30 minutes.\n\n"
+            f"Balance will be credited automatically after network confirmation."
+        )
+
+        logger.info(f"Topup request #{req_id}: {unique_usdt} USDT for user {chat_id}")
+
+    except Exception as e:
+        logger.error(f"Topup request error: {e}")
+        send_message(chat_id, "Error creating topup request. Try again.")
+
+
+# ═══════════════════════════════════
+#  TRONGRID TRANSACTION CHECKER
+# ═══════════════════════════════════
+def transaction_checker_loop():
+    """Background thread: check TronGrid every N seconds for new USDT transfers."""
+    last_timestamp = load_last_timestamp()
+    logger.info(f"[Checker] Started, last_timestamp={last_timestamp}")
+
+    while True:
+        try:
+            # Expire old requests
+            expire_old_requests()
+
+            # Check for new transfers
+            transfers = check_incoming_transfers(last_timestamp)
+
+            for tx in transfers:
+                tx_hash = tx.get("transaction_id", "")
+                value_str = tx.get("value", "0")
+                block_ts = tx.get("block_timestamp", 0)
+
+                # Parse USDT amount
+                usdt_amount = parse_usdt_amount(value_str)
+                if usdt_amount <= 0:
+                    continue
+
+                # Skip if already processed
+                if is_tx_used(tx_hash):
+                    continue
+
+                logger.info(f"[Checker] New transfer: {usdt_amount} USDT, tx={tx_hash[:16]}...")
+
+                # Try to match with pending request
+                request = find_pending_by_amount(usdt_amount)
+                if request:
+                    req_id = request["id"]
+                    telegram_id = request["telegram_id"]
+                    rub_amount = request["rub_amount"]
+
+                    # Credit balance
+                    mark_paid(req_id, tx_hash, telegram_id, rub_amount)
+
+                    # Get updated balance
+                    new_balance = get_balance(telegram_id)
+
+                    # Notify user
+                    send_message(telegram_id,
+                        f"<b>Balance topped up!</b>\n\n"
+                        f"+ <b>{rub_amount:,.0f} RUB</b>\n"
+                        f"New balance: <b>{new_balance:,.0f} RUB</b>\n\n"
+                        f"TX: <code>{tx_hash[:24]}...</code>"
+                    )
+
+                    logger.info(f"[Checker] Matched! Request #{req_id}, user {telegram_id}, +{rub_amount} RUB")
+                else:
+                    logger.warning(f"[Checker] Unmatched transfer: {usdt_amount} USDT, tx={tx_hash[:16]}")
+
+                # Update timestamp
+                if block_ts > last_timestamp:
+                    last_timestamp = block_ts + 1
+                    save_last_timestamp(last_timestamp)
+
+        except Exception as e:
+            logger.error(f"[Checker] Error: {e}")
+
+        time.sleep(CHECK_INTERVAL)
+
+
+# ═══════════════════════════════════
+#  UPDATE PROCESSING
+# ═══════════════════════════════════
 def process_update(update):
-    """Обработка одного обновления"""
+    """Process a single Telegram update."""
     message = update.get("message")
     if not message:
         return
 
-    # Данные из Web App
+    # Web App data
     if "web_app_data" in message:
         handle_webapp_data(message)
         return
 
-    # Текстовые команды
+    # Text commands
     text = message.get("text", "")
-    if text == "/start":
+    if text == "/start" or text.startswith("/start "):
         handle_start(message)
+    elif text == "/balance":
+        handle_balance(message)
+    elif text == "/topup":
+        handle_topup_command(message)
 
 
 # ═══════════════════════════════════
 #  SETUP & MAIN LOOP
 # ═══════════════════════════════════
 def setup():
-    """Начальная настройка бота"""
-    # Установим кнопку меню
+    """Initial bot setup."""
     result = api_call("setChatMenuButton", menu_button={
         "type": "web_app",
-        "text": "🏪 Магазин",
+        "text": "Store",
         "web_app": {"url": WEBAPP_URL}
     })
     if result.get("ok"):
-        logger.info("✅ Menu button set successfully")
+        logger.info("Menu button set")
 
-    # Проверим бота
     me = api_call("getMe")
     if me.get("ok"):
         bot_info = me["result"]
-        logger.info(f"✅ Bot: @{bot_info['username']} ({bot_info['first_name']})")
+        logger.info(f"Bot: @{bot_info['username']} ({bot_info['first_name']})")
 
 
 def main():
-    logger.info("🚀 Bot starting...")
+    logger.info("Bot starting...")
+
+    # Init database
+    init_db()
+
+    # Setup bot
     setup()
 
-    logger.info("📡 Polling started...")
+    # Start transaction checker in background
+    checker = threading.Thread(target=transaction_checker_loop, daemon=True)
+    checker.start()
+    logger.info("Transaction checker started")
+
+    # Polling loop
+    logger.info("Polling started...")
     offset = None
 
     while True:

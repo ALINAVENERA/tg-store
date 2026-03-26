@@ -514,7 +514,7 @@ $('#checkoutBtn')?.addEventListener('click', () => {
 // ═══════════════════════════════════
 //  TOPUP (CRYPTO)
 // ═══════════════════════════════════
-const USDT_RATE = 87.0; // 1 USDT = X RUB
+const USDT_RATE = 83.0; // 1 USDT = X RUB
 let selectedUsdt = 10;
 
 let converterLock = false;
@@ -569,7 +569,10 @@ $('#topupSubmit')?.addEventListener('click', () => {
 
 function handleTopup(usdt, rub) {
     if (tg) {
-        tg.sendData(JSON.stringify({ action: 'topup', usdt, rub, method: 'USDT_TRC20' }));
+        showToast('Заявка отправлена — смотри чат бота');
+        setTimeout(() => {
+            tg.sendData(JSON.stringify({ action: 'topup', usdt, rub, method: 'USDT_TRC20' }));
+        }, 1200);
     } else {
         showToast(`Пополнение: ${usdt} USDT (≈ ${rub.toLocaleString()} ₽)`);
     }
