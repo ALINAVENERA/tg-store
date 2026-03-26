@@ -679,6 +679,49 @@ html, body {
     color: white;
 }
 
+.product-qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 36px;
+}
+
+.pqc-btn {
+    width: 32px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+
+.pqc-btn:active {
+    background: var(--accent-dim);
+}
+
+.pqc-btn.minus {
+    color: var(--text2);
+}
+
+.pqc-count {
+    min-width: 24px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+}
+
 /* ═══════════════════════════════════
    CART
    ═══════════════════════════════════ */
@@ -1031,6 +1074,9 @@ html, body {
 }
 
 .converter-input::placeholder { color: var(--text3); }
+.converter-input::-webkit-outer-spin-button,
+.converter-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.converter-input { -moz-appearance: textfield; }
 
 .converter-result {
     font-size: 20px;
@@ -1148,6 +1194,34 @@ html, body {
 .tab.active svg {
     transform: scale(1.1);
     filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.tab-icon-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.tab-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 10px;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.tab-badge.show {
+    display: flex;
 }
 
 /* ═══════════════════════════════════
