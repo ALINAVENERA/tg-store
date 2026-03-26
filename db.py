@@ -196,6 +196,76 @@ def mark_paid(request_id, tx_hash, telegram_id, rub_amount):
         conn.close()
 
 
+def get_admin_stats():
+    """Get stats for admin panel."""
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("SELECT COUNT(*) FROM users")
+    total_users = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM topup_requests WHERE status = 'pending'")
+    pending = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM topup_requests WHERE status = 'paid'")
+    paid = c.fetchone()[0]
+
+    c.execute("SELECT COALESCE(SUM(rub_amount), 0) FROM topup_requests WHERE status = 'paid'")
+    total_rub = c.fetchone()[0]
+
+    c.execute("SELECT COALESCE(SUM(usdt_amount), 0) FROM topup_requests WHERE status = 'paid'")
+    total_usdt = c.fetchone()[0]
+
+    conn.close()
+    return {
+        "total_users": total_users,
+        "pending": pending,
+        "paid": paid,
+        "total_rub": total_rub,
+        "total_usdt": total_usdt,
+    }
+
+
+def get_recent_requests(limit=10):
+    """Get recent topup requests."""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute(
+        """SELECT tr.id, tr.telegram_id, u.first_name, tr.usdt_amount, tr.rub_amount,
+                  tr.status, tr.created_at
+           FROM topup_requests tr
+           LEFT JOIN users u ON tr.telegram_id = u.telegram_id
+           ORDER BY tr.id DESC LIMIT ?""",
+        (limit,)
+    )
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_all_users():
+    """Get all users with balances."""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT telegram_id, first_name, username, balance_rub, created_at FROM users ORDER BY balance_rub DESC")
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def admin_credit_user(telegram_id, amount_rub, description="Manual credit"):
+    """Admin: manually credit a user's balance."""
+    with db_lock:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("UPDATE users SET balance_rub = balance_rub + ? WHERE telegram_id = ?",
+                  (amount_rub, telegram_id))
+        c.execute("INSERT INTO transactions (telegram_id, type, amount_rub, description) VALUES (?, 'topup', ?, ?)",
+                  (telegram_id, amount_rub, description))
+        conn.commit()
+        conn.close()
+
+
 def expire_old_requests():
     """Mark expired pending requests."""
     with db_lock:

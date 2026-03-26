@@ -18,5 +18,8 @@ REQUEST_EXPIRY_MIN = 30  # минут до истечения заявки
 # Database
 DB_PATH = "store.db"
 
+# Admin
+ADMIN_ID = 820990963
+
 # Telegram API
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"

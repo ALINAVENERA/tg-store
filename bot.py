@@ -4,11 +4,12 @@ import time
 import threading
 import requests
 
-from config import BOT_TOKEN, WEBAPP_URL, API, WALLET_ADDRESS, USDT_RATE, CHECK_INTERVAL
+from config import BOT_TOKEN, WEBAPP_URL, API, WALLET_ADDRESS, USDT_RATE, CHECK_INTERVAL, ADMIN_ID
 from db import (
     init_db, ensure_user, get_balance, generate_unique_amount,
     create_topup_request, find_pending_by_amount, is_tx_used,
-    mark_paid, expire_old_requests
+    mark_paid, expire_old_requests, get_admin_stats, get_recent_requests,
+    get_all_users, admin_credit_user
 )
 from trongrid import (
     check_incoming_transfers, parse_usdt_amount,
@@ -223,6 +224,82 @@ def transaction_checker_loop():
 
 
 # ═══════════════════════════════════
+#  ADMIN COMMANDS
+# ═══════════════════════════════════
+def handle_admin(message):
+    """Admin dashboard."""
+    s = get_admin_stats()
+    send_message(message["chat"]["id"],
+        f"<b>📊 Админ-панель</b>\n\n"
+        f"👤 Юзеров: <b>{s['total_users']}</b>\n"
+        f"⏳ Ожидают оплаты: <b>{s['pending']}</b>\n"
+        f"✅ Оплачено: <b>{s['paid']}</b>\n"
+        f"💰 Всего получено: <b>{s['total_usdt']:.2f} USDT</b>\n"
+        f"💵 Зачислено: <b>{s['total_rub']:,.0f} ₽</b>\n\n"
+        f"/users — все юзеры\n"
+        f"/requests — последние заявки\n"
+        f"/credit [id] [сумма] — начислить вручную"
+    )
+
+
+def handle_admin_users(message):
+    """List all users."""
+    users = get_all_users()
+    if not users:
+        send_message(message["chat"]["id"], "Нет юзеров")
+        return
+
+    lines = ["<b>👤 Юзеры</b>\n"]
+    for u in users:
+        name = u["first_name"] or "—"
+        uname = f"@{u['username']}" if u["username"] else ""
+        lines.append(
+            f"<code>{u['telegram_id']}</code> {name} {uname}\n"
+            f"   💰 {u['balance_rub']:,.0f} ₽"
+        )
+    send_message(message["chat"]["id"], "\n".join(lines))
+
+
+def handle_admin_requests(message):
+    """List recent topup requests."""
+    reqs = get_recent_requests(15)
+    if not reqs:
+        send_message(message["chat"]["id"], "Нет заявок")
+        return
+
+    status_icons = {"pending": "⏳", "paid": "✅", "expired": "❌"}
+    lines = ["<b>📋 Последние заявки</b>\n"]
+    for r in reqs:
+        icon = status_icons.get(r["status"], "❓")
+        name = r["first_name"] or "—"
+        lines.append(
+            f"{icon} #{r['id']} | {r['usdt_amount']} USDT ({r['rub_amount']:,.0f}₽)\n"
+            f"   {name} | {r['status']} | {r['created_at']}"
+        )
+    send_message(message["chat"]["id"], "\n".join(lines))
+
+
+def handle_admin_credit(message, text):
+    """Manually credit a user. /credit [telegram_id] [amount_rub]"""
+    try:
+        parts = text.split()
+        uid = int(parts[1])
+        amount = float(parts[2])
+        admin_credit_user(uid, amount, "Admin manual credit")
+        balance = get_balance(uid)
+        send_message(message["chat"]["id"],
+            f"✅ Начислено <b>{amount:,.0f} ₽</b> юзеру <code>{uid}</code>\n"
+            f"Новый баланс: <b>{balance:,.0f} ₽</b>"
+        )
+        # Notify user
+        send_message(uid, f"💰 Баланс пополнен на <b>{amount:,.0f} ₽</b>")
+    except (IndexError, ValueError):
+        send_message(message["chat"]["id"], "Формат: /credit [telegram_id] [сумма]\nПример: /credit 820990963 1000")
+    except Exception as e:
+        send_message(message["chat"]["id"], f"Ошибка: {e}")
+
+
+# ═══════════════════════════════════
 #  UPDATE PROCESSING
 # ═══════════════════════════════════
 def process_update(update):
@@ -244,8 +321,18 @@ def process_update(update):
 
     # Text commands
     text = message.get("text", "").split("@")[0]  # strip @botname
+    chat_id = message["chat"]["id"]
+
     if text == "/start":
         handle_start(message)
+    elif text == "/admin" and chat_id == ADMIN_ID:
+        handle_admin(message)
+    elif text == "/users" and chat_id == ADMIN_ID:
+        handle_admin_users(message)
+    elif text == "/requests" and chat_id == ADMIN_ID:
+        handle_admin_requests(message)
+    elif text.startswith("/credit ") and chat_id == ADMIN_ID:
+        handle_admin_credit(message, text)
 
 
 # ═══════════════════════════════════
