@@ -434,25 +434,50 @@ $('#checkoutBtn')?.addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════
-//  TOPUP
+//  TOPUP (CRYPTO)
 // ═══════════════════════════════════
+const USDT_RATE = 87.0; // 1 USDT = X RUB
+let selectedUsdt = 10;
+
+function updateConverter() {
+    const input = $('#usdtInput');
+    const val = parseFloat(input?.value) || 0;
+    selectedUsdt = val;
+    const rub = Math.round(val * USDT_RATE);
+    const result = $('#rubResult');
+    if (result) result.textContent = `≈ ${rub.toLocaleString()} ₽`;
+}
+
+$('#usdtInput')?.addEventListener('input', updateConverter);
+
+// Quick amount buttons
 $$('.topup-amount').forEach(btn => {
     btn.addEventListener('click', () => {
-        const amount = parseInt(btn.dataset.amount);
-        handleTopup(amount);
+        const usdt = parseFloat(btn.dataset.usdt);
+        if (usdt) {
+            selectedUsdt = usdt;
+            const input = $('#usdtInput');
+            if (input) input.value = usdt;
+            updateConverter();
+        }
+        // Highlight selected
+        $$('.topup-amount').forEach(b => b.style.borderColor = '');
+        btn.style.borderColor = 'var(--accent)';
+        if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
     });
 });
 
 $('#topupSubmit')?.addEventListener('click', () => {
-    const val = parseInt($('#topupInput')?.value);
-    if (val && val > 0) handleTopup(val);
+    if (selectedUsdt <= 0) return;
+    const rubAmount = Math.round(selectedUsdt * USDT_RATE);
+    handleTopup(selectedUsdt, rubAmount);
 });
 
-function handleTopup(amount) {
+function handleTopup(usdt, rub) {
     if (tg) {
-        tg.sendData(JSON.stringify({ action: 'topup', amount }));
+        tg.sendData(JSON.stringify({ action: 'topup', usdt, rub, method: 'USDT_TRC20' }));
     } else {
-        showToast(`Пополнение на ₽${amount.toLocaleString()}`);
+        showToast(`Пополнение: ${usdt} USDT (≈ ${rub.toLocaleString()} ₽)`);
     }
     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 }

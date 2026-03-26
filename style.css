@@ -897,16 +897,26 @@ html, body {
 }
 
 .topup-amount {
-    padding: 16px;
+    padding: 14px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.topup-amount span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
 }
 
 .topup-amount:active {
@@ -916,42 +926,167 @@ html, body {
     color: var(--accent);
 }
 
-.topup-custom {
-    display: flex;
-    gap: 10px;
+.topup-amount:active span {
+    color: var(--accent);
 }
 
-.topup-input {
-    flex: 1;
-    padding: 14px 16px;
+/* Crypto Method Card */
+.crypto-method {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
     border-radius: var(--radius);
-    border: 1px solid var(--border);
     background: var(--surface);
-    color: var(--text);
+    border: 1px solid var(--border2);
+    margin-bottom: 20px;
+}
+
+.crypto-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(38, 161, 123, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.crypto-method-info {
+    flex: 1;
+}
+
+.crypto-method-name {
     font-size: 15px;
-    font-family: inherit;
-    outline: none;
+    font-weight: 700;
+}
+
+.crypto-method-desc {
+    font-size: 12px;
+    color: var(--text3);
+}
+
+.crypto-method-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: rgba(38, 161, 123, 0.15);
+    color: #26A17B;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* Converter */
+.converter-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.converter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.converter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.converter-label {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+}
+
+.converter-input-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
     transition: border-color 0.2s;
 }
 
-.topup-input:focus { border-color: var(--accent); }
-.topup-input::placeholder { color: var(--text3); }
-
-.topup-submit {
-    padding: 14px 24px;
-    border-radius: var(--radius);
-    border: none;
-    background: var(--accent);
-    color: var(--bg);
-    font-size: 15px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
+.converter-input-wrap:focus-within {
+    border-color: var(--accent);
 }
 
-.topup-submit:active { transform: scale(0.96); }
+.converter-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 800;
+    font-family: inherit;
+    outline: none;
+    width: 60%;
+}
+
+.converter-input::placeholder { color: var(--text3); }
+
+.converter-result {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.converter-currency {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text2);
+    flex-shrink: 0;
+}
+
+.converter-currency-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.converter-currency-icon.usdt {
+    background: rgba(38, 161, 123, 0.15);
+    color: #26A17B;
+}
+
+.converter-currency-icon.rub {
+    background: var(--accent-dim);
+    color: var(--accent);
+}
+
+.converter-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    color: var(--text3);
+}
+
+.converter-rate {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text3);
+}
 
 /* ═══════════════════════════════════
    TAB BAR (Mobile)
@@ -977,8 +1112,9 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 3px;
-    padding: 8px 0;
+    padding: 10px 0;
     background: none;
     border: none;
     color: var(--text3);
@@ -988,6 +1124,13 @@ html, body {
     cursor: pointer;
     transition: all 0.2s;
     min-width: 56px;
+    flex: 1;
+    height: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tab * {
+    pointer-events: none;
 }
 
 .tab.active {
