@@ -1201,8 +1201,8 @@ html, body {
 .tab-badge {
     position: absolute;
     top: 4px;
-    right: 50%;
-    transform: translateX(18px);
+    left: 50%;
+    transform: translateX(6px);
     min-width: 16px;
     height: 16px;
     border-radius: 8px;
