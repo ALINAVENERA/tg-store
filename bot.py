@@ -3,8 +3,10 @@ import logging
 import time
 import threading
 import requests
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 
-from config import BOT_TOKEN, WEBAPP_URL, API, WALLET_ADDRESS, USDT_RATE, CHECK_INTERVAL, ADMIN_ID
+from config import BOT_TOKEN, WEBAPP_URL, API, WALLET_ADDRESS, USDT_RATE, CHECK_INTERVAL, ADMIN_ID, API_PORT
 from db import (
     init_db, ensure_user, get_balance, generate_unique_amount,
     create_topup_request, find_pending_by_amount, is_tx_used,
@@ -336,6 +338,50 @@ def process_update(update):
 
 
 # ═══════════════════════════════════
+#  HTTP API SERVER
+# ═══════════════════════════════════
+class APIHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+
+        # CORS headers
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        if parsed.path == "/api/balance":
+            user_id = params.get("user_id", [None])[0]
+            if user_id:
+                try:
+                    balance = get_balance(int(user_id))
+                    self.wfile.write(json.dumps({"ok": True, "balance": balance}).encode())
+                except:
+                    self.wfile.write(json.dumps({"ok": False, "error": "invalid user_id"}).encode())
+            else:
+                self.wfile.write(json.dumps({"ok": False, "error": "missing user_id"}).encode())
+        else:
+            self.wfile.write(json.dumps({"ok": False, "error": "not found"}).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # Suppress HTTP logs
+
+
+def start_api_server():
+    server = HTTPServer(("0.0.0.0", API_PORT), APIHandler)
+    logger.info(f"API server on port {API_PORT}")
+    server.serve_forever()
+
+
+# ═══════════════════════════════════
 #  SETUP & MAIN LOOP
 # ═══════════════════════════════════
 def setup():
@@ -362,6 +408,10 @@ def main():
 
     # Setup bot
     setup()
+
+    # Start API server
+    api_thread = threading.Thread(target=start_api_server, daemon=True)
+    api_thread.start()
 
     # Start transaction checker in background
     checker = threading.Thread(target=transaction_checker_loop, daemon=True)

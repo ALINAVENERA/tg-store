@@ -21,5 +21,8 @@ DB_PATH = "store.db"
 # Admin
 ADMIN_ID = 820990963
 
+# API Server
+API_PORT = 8080
+
 # Telegram API
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"

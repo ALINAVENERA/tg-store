@@ -746,6 +746,36 @@ function showToast(text) {
 }
 
 // ═══════════════════════════════════
+//  BALANCE
+// ═══════════════════════════════════
+const BOT_API_URL = 'http://localhost:8080';
+let userBalance = 0;
+
+async function loadBalance() {
+    const userId = user?.id;
+    if (!userId) return;
+
+    try {
+        const resp = await fetch(`${BOT_API_URL}/api/balance?user_id=${userId}`);
+        const data = await resp.json();
+        if (data.ok) {
+            userBalance = data.balance;
+            updateBalanceDisplay();
+        }
+    } catch (e) {
+        // API not available — keep cached balance
+    }
+}
+
+function updateBalanceDisplay() {
+    const formatted = `₽${Math.floor(userBalance).toLocaleString()}`;
+    const bal = $('#balanceAmount');
+    if (bal) bal.textContent = formatted;
+    const topupBal = $('#topupBalance');
+    if (topupBal) topupBal.textContent = formatted;
+}
+
+// ═══════════════════════════════════
 //  INIT
 // ═══════════════════════════════════
 function init() {
@@ -763,6 +793,7 @@ function init() {
     initParticles();
     renderProducts();
     updateCartUI();
+    loadBalance();
 }
 
 document.addEventListener('DOMContentLoaded', init);
