@@ -1363,6 +1363,184 @@ html, body {
 .modal-add-btn:active { transform: scale(0.97); }
 
 /* ═══════════════════════════════════
+   PAYMENT MODAL
+   ═══════════════════════════════════ */
+.payment-sheet {
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
+.payment-body {
+    padding: 0 20px 32px;
+}
+
+.payment-header {
+    text-align: center;
+    padding: 12px 0 20px;
+}
+
+.payment-status-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+    50% { box-shadow: 0 0 20px 6px var(--accent-glow); }
+}
+
+.payment-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.payment-subtitle {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.payment-amount-card {
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+}
+
+.payment-amount-label {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.payment-amount-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+}
+
+.payment-amount-rub {
+    font-size: 14px;
+    color: var(--text2);
+    margin-top: 4px;
+}
+
+.payment-address-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.payment-address-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.payment-address {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+    font-family: monospace;
+    background: var(--surface2);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    user-select: all;
+}
+
+.payment-copy-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.payment-copy-btn:active {
+    transform: scale(0.97);
+    background: var(--accent);
+    color: var(--bg);
+}
+
+.payment-qr {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+}
+
+.payment-qr canvas, .payment-qr img {
+    border-radius: var(--radius);
+    border: 3px solid var(--accent);
+}
+
+.payment-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 16px;
+}
+
+.payment-warning svg {
+    flex-shrink: 0;
+    color: var(--accent2);
+    margin-top: 1px;
+}
+
+.payment-cancel-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: color 0.2s;
+}
+
+.payment-cancel-btn:active {
+    color: var(--text);
+}
+
+/* ═══════════════════════════════════
    DESKTOP LAYOUT (>768px)
    ═══════════════════════════════════ */
 @media (min-width: 769px) {

@@ -331,6 +331,47 @@
         </div>
     </div>
 
+    <!-- Payment Modal -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-sheet payment-sheet">
+            <div class="modal-handle"></div>
+            <div class="payment-body">
+                <div class="payment-header">
+                    <div class="payment-status-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <div class="payment-title">Заявка #<span id="payReqId">—</span></div>
+                    <div class="payment-subtitle">Ожидание оплаты</div>
+                </div>
+
+                <div class="payment-amount-card">
+                    <div class="payment-amount-label">Отправьте ровно</div>
+                    <div class="payment-amount-value" id="payAmount">0.000 USDT</div>
+                    <div class="payment-amount-rub" id="payAmountRub">≈ 0 ₽</div>
+                </div>
+
+                <div class="payment-address-card">
+                    <div class="payment-address-label">Адрес кошелька (TRC-20)</div>
+                    <div class="payment-address" id="payAddress">—</div>
+                    <button class="payment-copy-btn" id="payCopyBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        Копировать адрес
+                    </button>
+                </div>
+
+                <div class="payment-qr" id="payQR"></div>
+
+                <div class="payment-warning">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    <span>Отправьте <b>точную сумму</b>. Заявка действует 30 минут.</span>
+                </div>
+
+                <button class="checkout-btn" id="payConfirmBtn">Я оплатил</button>
+                <button class="payment-cancel-btn" id="payCancelBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

@@ -267,14 +267,20 @@ def process_update(update):
     if not message:
         return
 
+    # Log every incoming message
+    text_raw = message.get("text", "")
+    has_webapp = "web_app_data" in message
+    user = message.get("from", {})
+    logger.info(f"[MSG] from={user.get('first_name')} id={message['chat']['id']} text='{text_raw}' webapp={has_webapp}")
+
     # Web App data
     if "web_app_data" in message:
         handle_webapp_data(message)
         return
 
     # Text commands
-    text = message.get("text", "")
-    if text == "/start" or text.startswith("/start "):
+    text = message.get("text", "").split("@")[0]  # strip @botname
+    if text == "/start":
         handle_start(message)
     elif text == "/balance":
         handle_balance(message)

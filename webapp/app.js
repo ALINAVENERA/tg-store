@@ -561,23 +561,96 @@ $$('.topup-amount').forEach(btn => {
     });
 });
 
+const WALLET_ADDRESS = 'TPav18k2LjP3wbPR6sHNFg19GBjxpiwLqX';
+let currentPayment = null;
+
 $('#topupSubmit')?.addEventListener('click', () => {
     if (selectedUsdt <= 0) return;
-    const rubAmount = Math.round(selectedUsdt * USDT_RATE);
-    handleTopup(selectedUsdt, rubAmount);
+    openPaymentModal(selectedUsdt);
 });
 
-function handleTopup(usdt, rub) {
+function generateRequestId() {
+    return Math.floor(100000 + Math.random() * 900000);
+}
+
+function generateUniqueAmount(baseUsdt) {
+    const suffix = Math.floor(Math.random() * 999) + 1;
+    return parseFloat((baseUsdt + suffix / 1000).toFixed(3));
+}
+
+function openPaymentModal(baseUsdt) {
+    const uniqueUsdt = generateUniqueAmount(baseUsdt);
+    const rubAmount = Math.round(uniqueUsdt * USDT_RATE);
+    const reqId = generateRequestId();
+
+    currentPayment = { usdt: uniqueUsdt, rub: rubAmount, reqId };
+
+    // Fill modal
+    $('#payReqId').textContent = reqId;
+    $('#payAmount').textContent = `${uniqueUsdt} USDT`;
+    $('#payAmountRub').textContent = `≈ ${rubAmount.toLocaleString()} ₽`;
+    $('#payAddress').textContent = WALLET_ADDRESS;
+
+    // QR Code (using free API)
+    const qrData = WALLET_ADDRESS;
+    const qrContainer = $('#payQR');
+    qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}&bgcolor=111111&color=fbbf24" alt="QR" width="180" height="180">`;
+
+    // Open modal
+    $('#paymentModal').classList.add('open');
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+}
+
+function closePaymentModal() {
+    $('#paymentModal').classList.remove('open');
+    currentPayment = null;
+}
+
+// Copy address
+$('#payCopyBtn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(WALLET_ADDRESS).then(() => {
+        showToast('Адрес скопирован');
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }).catch(() => {
+        // Fallback
+        const el = $('#payAddress');
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        showToast('Выделите и скопируйте адрес');
+    });
+});
+
+// Confirm payment
+$('#payConfirmBtn')?.addEventListener('click', () => {
+    if (!currentPayment) return;
+
     if (tg) {
-        showToast('Заявка отправлена — смотри чат бота');
-        setTimeout(() => {
-            tg.sendData(JSON.stringify({ action: 'topup', usdt, rub, method: 'USDT_TRC20' }));
-        }, 1200);
+        tg.sendData(JSON.stringify({
+            action: 'topup',
+            usdt: currentPayment.usdt,
+            rub: currentPayment.rub,
+            reqId: currentPayment.reqId,
+            method: 'USDT_TRC20'
+        }));
     } else {
-        showToast(`Пополнение: ${usdt} USDT (≈ ${rub.toLocaleString()} ₽)`);
+        showToast(`Заявка #${currentPayment.reqId} отправлена`);
+        closePaymentModal();
     }
     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-}
+});
+
+// Cancel payment
+$('#payCancelBtn')?.addEventListener('click', () => {
+    closePaymentModal();
+});
+
+// Close on overlay click
+$('#paymentModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'paymentModal') closePaymentModal();
+});
 
 // ═══════════════════════════════════
 //  TOAST
