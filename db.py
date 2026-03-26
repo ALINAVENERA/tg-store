@@ -109,7 +109,7 @@ def generate_unique_amount(base_usdt):
         conn = get_conn()
         c = conn.cursor()
         for _ in range(50):
-            suffix = random.randint(1, 999)
+            suffix = random.randint(10, 99)  # 0.010 - 0.099
             unique_amount = round(base_usdt + suffix / 1000, 3)
             c.execute(
                 "SELECT 1 FROM topup_requests WHERE usdt_amount = ? AND status = 'pending'",
