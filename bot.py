@@ -1,47 +1,76 @@
-import asyncio
 import json
 import logging
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import CommandStart
-from aiogram.types import (
-    InlineKeyboardMarkup, InlineKeyboardButton,
-    WebAppInfo, MenuButtonWebApp
-)
+import time
+import requests
 
 # ═══════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════
 BOT_TOKEN = "8680838753:AAEk6cBkRrEaCb3g-s59tzl3Ooioabue-08"
-
 WEBAPP_URL = "https://alinavenera.github.io/tg-store"
+API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+
+def api_call(method, **kwargs):
+    """Вызов Telegram Bot API"""
+    try:
+        r = requests.post(f"{API}/{method}", json=kwargs, timeout=30)
+        data = r.json()
+        if not data.get("ok"):
+            logger.error(f"API error {method}: {data}")
+        return data
+    except Exception as e:
+        logger.error(f"Request error {method}: {e}")
+        return {}
+
+
+def get_updates(offset=None):
+    """Получить обновления (long polling)"""
+    params = {"timeout": 30}
+    if offset:
+        params["offset"] = offset
+    try:
+        r = requests.get(f"{API}/getUpdates", params=params, timeout=35)
+        data = r.json()
+        return data.get("result", [])
+    except Exception as e:
+        logger.error(f"Polling error: {e}")
+        return []
+
+
+def send_message(chat_id, text, reply_markup=None):
+    """Отправить сообщение"""
+    params = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
+    if reply_markup:
+        params["reply_markup"] = reply_markup
+    return api_call("sendMessage", **params)
 
 
 # ═══════════════════════════════════
-#  /start
+#  HANDLERS
 # ═══════════════════════════════════
-@dp.message(CommandStart())
-async def cmd_start(message: types.Message):
-    user = message.from_user
+def handle_start(message):
+    """Обработка /start"""
+    user = message.get("from", {})
+    chat_id = message["chat"]["id"]
+    first_name = user.get("first_name", "User")
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="🛒 Открыть магазин",
-            web_app=WebAppInfo(url=WEBAPP_URL)
-        )],
-        [InlineKeyboardButton(
-            text="💬 Поддержка",
-            url="https://t.me/your_support"
-        )],
-    ])
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "🛒 Открыть магазин", "web_app": {"url": WEBAPP_URL}}],
+            [{"text": "💬 Поддержка", "url": "https://t.me/your_support"}],
+        ]
+    }
 
-    welcome_text = (
-        f"👋 Привет, <b>{user.first_name}</b>!\n\n"
+    text = (
+        f"👋 Привет, <b>{first_name}</b>!\n\n"
         f"🏪 Добро пожаловать в <b>STORE.APP</b>\n\n"
         f"💰 Баланс: <b>₽0</b>\n"
         f"📦 Аккаунтов: <b>0</b>\n"
@@ -49,75 +78,98 @@ async def cmd_start(message: types.Message):
         f"✅ Завершённых заказов: <b>0</b>"
     )
 
-    await message.answer(
-        welcome_text,
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
+    send_message(chat_id, text, reply_markup=keyboard)
 
 
-# ═══════════════════════════════════
-#  WebApp Data Handler
-# ═══════════════════════════════════
-@dp.message(F.web_app_data)
-async def handle_webapp_data(message: types.Message):
+def handle_webapp_data(message):
+    """Обработка данных из Mini App"""
+    chat_id = message["chat"]["id"]
     try:
-        data = json.loads(message.web_app_data.data)
+        data = json.loads(message["web_app_data"]["data"])
 
-        # Обработка пополнения
         if data.get("action") == "topup":
             amount = data.get("amount", 0)
-            await message.answer(
+            send_message(chat_id,
                 f"💳 <b>Пополнение баланса</b>\n\n"
                 f"Сумма: <b>₽{amount:,}</b>\n\n"
-                f"Для оплаты переведите указанную сумму и отправьте скриншот оплаты.",
-                parse_mode="HTML"
+                f"Для оплаты переведите указанную сумму и отправьте скриншот оплаты."
             )
             return
 
-        # Обработка заказа
         items = data.get("items", [])
         total = data.get("total", 0)
 
-        order_text = "🛒 <b>Новый заказ!</b>\n\n"
+        text = "🛒 <b>Новый заказ!</b>\n\n"
         for item in items:
-            order_text += f"• {item['name']} × {item['qty']} — ₽{item['price'] * item['qty']:,}\n"
-        order_text += f"\n💰 <b>Итого: ₽{total:,}</b>"
+            text += f"• {item['name']} × {item['qty']} — ₽{item['price'] * item['qty']:,}\n"
+        text += f"\n💰 <b>Итого: ₽{total:,}</b>"
 
-        await message.answer(order_text, parse_mode="HTML")
-
-        logger.info(f"Order from {message.from_user.id}: {data}")
+        send_message(chat_id, text)
+        logger.info(f"Order from {chat_id}: {data}")
 
     except Exception as e:
-        logger.error(f"Error handling webapp data: {e}")
-        await message.answer("❌ Ошибка обработки заказа. Попробуйте снова.")
+        logger.error(f"WebApp data error: {e}")
+        send_message(chat_id, "❌ Ошибка обработки заказа.")
+
+
+def process_update(update):
+    """Обработка одного обновления"""
+    message = update.get("message")
+    if not message:
+        return
+
+    # Данные из Web App
+    if "web_app_data" in message:
+        handle_webapp_data(message)
+        return
+
+    # Текстовые команды
+    text = message.get("text", "")
+    if text == "/start":
+        handle_start(message)
 
 
 # ═══════════════════════════════════
-#  Setup Menu Button
+#  SETUP & MAIN LOOP
 # ═══════════════════════════════════
-async def setup_menu_button():
-    """Устанавливает кнопку Web App в меню бота"""
-    try:
-        await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(
-                text="🏪 Магазин",
-                web_app=WebAppInfo(url=WEBAPP_URL)
-            )
-        )
-        logger.info("Menu button set successfully")
-    except Exception as e:
-        logger.error(f"Failed to set menu button: {e}")
+def setup():
+    """Начальная настройка бота"""
+    # Установим кнопку меню
+    result = api_call("setChatMenuButton", menu_button={
+        "type": "web_app",
+        "text": "🏪 Магазин",
+        "web_app": {"url": WEBAPP_URL}
+    })
+    if result.get("ok"):
+        logger.info("✅ Menu button set successfully")
+
+    # Проверим бота
+    me = api_call("getMe")
+    if me.get("ok"):
+        bot_info = me["result"]
+        logger.info(f"✅ Bot: @{bot_info['username']} ({bot_info['first_name']})")
 
 
-# ═══════════════════════════════════
-#  MAIN
-# ═══════════════════════════════════
-async def main():
-    logger.info("Bot starting...")
-    await setup_menu_button()
-    await dp.start_polling(bot)
+def main():
+    logger.info("🚀 Bot starting...")
+    setup()
+
+    logger.info("📡 Polling started...")
+    offset = None
+
+    while True:
+        try:
+            updates = get_updates(offset)
+            for update in updates:
+                offset = update["update_id"] + 1
+                process_update(update)
+        except KeyboardInterrupt:
+            logger.info("Bot stopped")
+            break
+        except Exception as e:
+            logger.error(f"Main loop error: {e}")
+            time.sleep(3)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

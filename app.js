@@ -91,13 +91,13 @@ function initParticles() {
 
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(34, 211, 238, ${glowOpacity})`;
+            ctx.fillStyle = `rgba(250, 204, 21, ${glowOpacity})`;
             ctx.fill();
 
             // glow
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(34, 211, 238, ${glowOpacity * 0.15})`;
+            ctx.fillStyle = `rgba(250, 204, 21, ${glowOpacity * 0.15})`;
             ctx.fill();
         });
 
