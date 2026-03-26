@@ -1539,6 +1539,50 @@ html, body {
     margin-top: 1px;
 }
 
+.payment-status {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    display: none;
+}
+
+.payment-status.checking {
+    display: block;
+    color: var(--accent);
+    background: var(--accent-dim);
+    animation: pulse-opacity 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-opacity {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.payment-status.success {
+    display: block;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.payment-status.pending {
+    display: block;
+    color: var(--accent2);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.checkout-btn.paid {
+    background: #22c55e;
+    pointer-events: none;
+}
+
+.checkout-btn:disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 .payment-cancel-btn {
     width: 100%;
     padding: 12px;

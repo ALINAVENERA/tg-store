@@ -601,6 +601,15 @@ function openPaymentModal(baseUsdt) {
         </div>
     `;
 
+    // Reset status
+    const statusEl = $('#paymentStatus');
+    statusEl.className = 'payment-status';
+    statusEl.textContent = '';
+    const confirmBtn = $('#payConfirmBtn');
+    confirmBtn.textContent = 'Я оплатил';
+    confirmBtn.disabled = false;
+    confirmBtn.classList.remove('paid');
+
     // Open modal
     $('#paymentModal').classList.add('open');
     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
@@ -628,23 +637,90 @@ $('#payCopyBtn')?.addEventListener('click', () => {
     });
 });
 
-// Confirm payment
-$('#payConfirmBtn')?.addEventListener('click', () => {
-    if (!currentPayment) return;
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+const TRONGRID_API = 'https://api.trongrid.io';
+let checkingPayment = false;
 
-    if (tg) {
-        tg.sendData(JSON.stringify({
-            action: 'topup',
-            usdt: currentPayment.usdt,
-            rub: currentPayment.rub,
-            reqId: currentPayment.reqId,
-            method: 'USDT_TRC20'
-        }));
-    } else {
-        showToast(`Заявка #${currentPayment.reqId} отправлена`);
-        closePaymentModal();
+async function checkTronGrid(expectedUsdt) {
+    const url = `${TRONGRID_API}/v1/accounts/${WALLET_ADDRESS}/transactions/trc20`;
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    const params = new URLSearchParams({
+        only_confirmed: 'true',
+        limit: '30',
+        contract_address: USDT_CONTRACT,
+        only_to: 'true',
+        min_timestamp: fiveMinAgo.toString(),
+    });
+
+    const resp = await fetch(`${url}?${params}`);
+    const data = await resp.json();
+    const transfers = data.data || [];
+
+    for (const tx of transfers) {
+        const amount = parseInt(tx.value) / 1_000_000;
+        const rounded = Math.round(amount * 100) / 100;
+        if (rounded === expectedUsdt) {
+            return { found: true, txHash: tx.transaction_id };
+        }
     }
-    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    return { found: false };
+}
+
+// Confirm payment — check TronGrid
+$('#payConfirmBtn')?.addEventListener('click', async () => {
+    if (!currentPayment || checkingPayment) return;
+    checkingPayment = true;
+
+    const btn = $('#payConfirmBtn');
+    const statusEl = $('#paymentStatus');
+    btn.textContent = 'Проверяю...';
+    btn.disabled = true;
+    statusEl.className = 'payment-status checking';
+    statusEl.textContent = 'Ищем транзакцию в сети TRON...';
+
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+    try {
+        const result = await checkTronGrid(currentPayment.usdt);
+
+        if (result.found) {
+            // Payment found!
+            statusEl.className = 'payment-status success';
+            statusEl.textContent = 'Оплата подтверждена!';
+            btn.textContent = 'Оплачено ✓';
+            btn.classList.add('paid');
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+            // Send to bot for balance credit
+            if (tg) {
+                setTimeout(() => {
+                    tg.sendData(JSON.stringify({
+                        action: 'topup',
+                        usdt: currentPayment.usdt,
+                        rub: currentPayment.rub,
+                        reqId: currentPayment.reqId,
+                        txHash: result.txHash,
+                        method: 'USDT_TRC20'
+                    }));
+                }, 2000);
+            }
+        } else {
+            // Not found yet
+            statusEl.className = 'payment-status pending';
+            statusEl.textContent = 'Платёж пока не найден. Подождите 1-2 минуты и попробуйте снова.';
+            btn.textContent = 'Проверить ещё раз';
+            btn.disabled = false;
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        }
+    } catch (e) {
+        statusEl.className = 'payment-status pending';
+        statusEl.textContent = 'Ошибка проверки. Попробуйте ещё раз.';
+        btn.textContent = 'Проверить ещё раз';
+        btn.disabled = false;
+    }
+
+    checkingPayment = false;
 });
 
 // Cancel payment

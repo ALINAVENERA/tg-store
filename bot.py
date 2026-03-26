@@ -73,52 +73,16 @@ def handle_start(message):
 
     # Register user in DB
     ensure_user(chat_id, username, first_name)
-    balance = get_balance(chat_id)
 
     keyboard = {
         "inline_keyboard": [
-            [{"text": "Open store", "web_app": {"url": WEBAPP_URL}}],
-            [{"text": "Support", "url": "https://t.me/your_support"}],
+            [{"text": "Открыть магазин", "web_app": {"url": WEBAPP_URL}}],
         ]
     }
 
-    text = (
-        f"<b>{first_name}</b>, welcome!\n\n"
-        f"<b>STORE.APP</b>\n\n"
-        f"Balance: <b>{balance:,.0f} RUB</b>\n\n"
-        f"/balance - check balance\n"
-        f"/topup - top up instructions"
-    )
-
-    send_message(chat_id, text, reply_markup=keyboard)
-
-
-def handle_balance(message):
-    """/balance command."""
-    chat_id = message["chat"]["id"]
-    user = message.get("from", {})
-    ensure_user(chat_id, user.get("username"), user.get("first_name"))
-    balance = get_balance(chat_id)
-
     send_message(chat_id,
-        f"<b>Your balance</b>\n\n"
-        f"<b>{balance:,.0f} RUB</b>\n\n"
-        f"Top up via Mini App or /topup"
-    )
-
-
-def handle_topup_command(message):
-    """/topup command — send instructions."""
-    chat_id = message["chat"]["id"]
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "Open store - Top Up", "web_app": {"url": WEBAPP_URL}}],
-        ]
-    }
-    send_message(chat_id,
-        "<b>Top Up Balance</b>\n\n"
-        "Open the store and go to \"Top Up\" section to create a payment request.\n\n"
-        "Payment method: <b>USDT (TRC-20)</b>",
+        f"Привет, <b>{first_name}</b>!\n\n"
+        f"Нажми кнопку ниже чтобы открыть <b>STORE.APP</b>",
         reply_markup=keyboard
     )
 
@@ -282,10 +246,6 @@ def process_update(update):
     text = message.get("text", "").split("@")[0]  # strip @botname
     if text == "/start":
         handle_start(message)
-    elif text == "/balance":
-        handle_balance(message)
-    elif text == "/topup":
-        handle_topup_command(message)
 
 
 # ═══════════════════════════════════
