@@ -575,7 +575,7 @@ function generateRequestId() {
 
 function generateUniqueAmount(baseUsdt) {
     const suffix = Math.floor(Math.random() * 90) + 10; // 10-99
-    return parseFloat((baseUsdt + suffix / 1000).toFixed(3));
+    return parseFloat((baseUsdt + suffix / 100).toFixed(2));
 }
 
 function openPaymentModal(baseUsdt) {
@@ -587,7 +587,7 @@ function openPaymentModal(baseUsdt) {
 
     // Fill modal
     $('#payReqId').textContent = reqId;
-    $('#payAmount').textContent = `${uniqueUsdt} USDT`;
+    $('#payAmount').textContent = `${uniqueUsdt.toFixed(2)} USDT`;
     $('#payAmountRub').textContent = `≈ ${rubAmount.toLocaleString()} ₽`;
     $('#payAddress').textContent = WALLET_ADDRESS;
 

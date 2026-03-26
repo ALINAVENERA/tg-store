@@ -60,6 +60,6 @@ def parse_usdt_amount(value_str):
     """
     try:
         raw = int(value_str)
-        return round(raw / 1_000_000, 3)
+        return round(raw / 1_000_000, 2)
     except (ValueError, TypeError):
         return 0.0
