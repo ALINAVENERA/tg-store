@@ -15,16 +15,9 @@ const user = tg?.initDataUnsafe?.user;
 //  PRODUCTS DATA
 // ═══════════════════════════════════
 const products = [
-    { id: 1, name: 'Premium аккаунт', desc: 'Полный доступ ко всем функциям на 30 дней', price: 990, oldPrice: 1490, emoji: '👑', category: 'premium', tag: 'TOP' },
-    { id: 2, name: 'Starter Pack', desc: 'Базовый набор для начала работы', price: 490, emoji: '⚡', category: 'digital', tag: 'NEW' },
-    { id: 3, name: 'VIP подписка', desc: 'Эксклюзивные функции и приоритетная поддержка', price: 2990, oldPrice: 4990, emoji: '💎', category: 'premium', tag: 'SALE' },
-    { id: 4, name: 'Аккаунт Pro', desc: 'Готовый аккаунт с полной настройкой', price: 1490, emoji: '🔑', category: 'accounts' },
-    { id: 5, name: 'Базовый аккаунт', desc: 'Аккаунт с минимальной настройкой', price: 290, emoji: '📦', category: 'accounts' },
-    { id: 6, name: 'Консультация', desc: 'Персональная консультация 60 минут', price: 1990, emoji: '💬', category: 'services' },
-    { id: 7, name: 'Настройка под ключ', desc: 'Полная настройка и конфигурация', price: 4990, emoji: '🛠', category: 'services', tag: 'TOP' },
-    { id: 8, name: 'Mega Bundle', desc: 'Все продукты в одном пакете', price: 7990, oldPrice: 12990, emoji: '🚀', category: 'premium', tag: 'SALE' },
-    { id: 9, name: 'Аккаунт Lite', desc: 'Лёгкая версия для быстрого старта', price: 190, emoji: '✨', category: 'accounts', tag: 'NEW' },
-    { id: 10, name: 'Техподдержка 24/7', desc: 'Круглосуточная поддержка на месяц', price: 790, emoji: '🛡', category: 'services' },
+    { id: 1, name: 'Аккаунт YM Lite', desc: 'Базовый аккаунт с минимальной настройкой', price: 490, emoji: '🔑', category: 'accounts', tag: 'NEW' },
+    { id: 2, name: 'Аккаунт YM Standard', desc: 'Готовый аккаунт с полной настройкой', price: 990, emoji: '🔐', category: 'accounts' },
+    { id: 3, name: 'Аккаунт YM Pro', desc: 'Премиум аккаунт с расширенными лимитами', price: 1990, oldPrice: 2490, emoji: '👑', category: 'accounts', tag: 'TOP' },
 ];
 
 // ═══════════════════════════════════
@@ -132,6 +125,7 @@ function navigateTo(page) {
     // Render page content
     if (page === 'catalog') renderProducts();
     if (page === 'cart') renderCart();
+    if (page === 'orders') renderOrders();
 
     // Haptic
     if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
@@ -344,7 +338,7 @@ function closeProductModal() {
 }
 
 function getCategoryName(cat) {
-    const names = { digital: 'Цифровые', accounts: 'Аккаунты', services: 'Услуги', premium: 'Премиум' };
+    const names = { accounts: 'Аккаунты' };
     return names[cat] || cat;
 }
 
@@ -491,24 +485,29 @@ function renderCart() {
 $('#checkoutBtn')?.addEventListener('click', () => {
     if (cart.length === 0) return;
 
+    const orderItems = cart.map(item => {
+        const p = products.find(pr => pr.id === item.id);
+        return { id: item.id, name: p?.name, price: p?.price, qty: item.qty, emoji: p?.emoji };
+    });
+    const order = {
+        id: Math.floor(100000 + Math.random() * 900000),
+        items: orderItems,
+        total: getCartTotal(),
+        date: new Date().toISOString(),
+        status: 'completed',
+    };
+    saveOrder(order);
+
     if (tg) {
-        // Send data to bot
-        const orderData = {
-            items: cart.map(item => {
-                const p = products.find(pr => pr.id === item.id);
-                return { id: item.id, name: p?.name, price: p?.price, qty: item.qty };
-            }),
-            total: getCartTotal(),
-            userId: user?.id,
-        };
+        const orderData = { ...order, userId: user?.id };
         tg.sendData(JSON.stringify(orderData));
-    } else {
-        showToast('Заказ оформлен!');
-        cart = [];
-        updateCartUI();
-        renderCart();
-        navigateTo('orders');
     }
+
+    showToast('Заказ оформлен!');
+    cart = [];
+    updateCartUI();
+    renderCart();
+    navigateTo('orders');
 });
 
 // ═══════════════════════════════════
@@ -690,6 +689,14 @@ $('#payConfirmBtn')?.addEventListener('click', async () => {
             btn.textContent = 'Оплачено ✓';
             btn.classList.add('paid');
 
+            // Success animation
+            launchConfetti();
+            const statusIcon = $('.payment-status-icon');
+            if (statusIcon) {
+                statusIcon.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>';
+                statusIcon.classList.add('payment-success-anim');
+            }
+
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
             // Send to bot for balance credit
@@ -732,6 +739,138 @@ $('#payCancelBtn')?.addEventListener('click', () => {
 $('#paymentModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'paymentModal') closePaymentModal();
 });
+
+// ═══════════════════════════════════
+//  SUPPORT
+// ═══════════════════════════════════
+$('#supportTgBtn')?.addEventListener('click', () => {
+    const url = 'https://t.me/adreatlik';
+    if (tg?.openTelegramLink) {
+        tg.openTelegramLink(url);
+    } else {
+        window.open(url, '_blank');
+    }
+});
+
+// ═══════════════════════════════════
+//  ORDERS (localStorage)
+// ═══════════════════════════════════
+function getOrders() {
+    try {
+        return JSON.parse(localStorage.getItem('ym_orders') || '[]');
+    } catch { return []; }
+}
+
+function saveOrder(order) {
+    const orders = getOrders();
+    orders.unshift(order);
+    localStorage.setItem('ym_orders', JSON.stringify(orders));
+}
+
+function renderOrders() {
+    const container = $('#ordersList');
+    const orders = getOrders();
+
+    if (orders.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                </div>
+                <div class="empty-title">Нет заказов</div>
+                <div class="empty-sub">Ваши заказы появятся здесь</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = orders.map(o => `
+        <div class="order-card">
+            <div class="order-header">
+                <div>
+                    <div class="order-id">Заказ #${o.id}</div>
+                    <div class="order-date">${new Date(o.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="order-status ${o.status}">${o.status === 'completed' ? 'Выполнен' : 'В обработке'}</div>
+            </div>
+            <div class="order-items-list">
+                ${o.items.map(item => `
+                    <div class="order-item-row">
+                        <span class="order-item-name">${item.emoji || '📦'} ${item.name} × ${item.qty}</span>
+                        <span>₽${(item.price * item.qty).toLocaleString()}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="order-total-row">
+                <span>Итого</span>
+                <span>₽${o.total.toLocaleString()}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════
+//  CONFETTI
+// ═══════════════════════════════════
+function launchConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none;';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#22c55e', '#fbbf24', '#ef4444', '#3b82f6', '#a855f7', '#ffffff'];
+    const particles = [];
+
+    for (let i = 0; i < 80; i++) {
+        particles.push({
+            x: canvas.width / 2 + (Math.random() - 0.5) * 60,
+            y: canvas.height / 2,
+            vx: (Math.random() - 0.5) * 16,
+            vy: -Math.random() * 18 - 4,
+            size: Math.random() * 6 + 3,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 12,
+            gravity: 0.4 + Math.random() * 0.2,
+            opacity: 1,
+        });
+    }
+
+    let frame = 0;
+    const maxFrames = 150;
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frame++;
+
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.vy += p.gravity;
+            p.y += p.vy;
+            p.vx *= 0.99;
+            p.rotation += p.rotSpeed;
+            if (frame > maxFrames - 40) p.opacity -= 0.025;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.globalAlpha = Math.max(0, p.opacity);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+            ctx.restore();
+        });
+
+        if (frame < maxFrames) {
+            requestAnimationFrame(animate);
+        } else {
+            canvas.remove();
+        }
+    }
+
+    animate();
+}
 
 // ═══════════════════════════════════
 //  TOAST
@@ -794,6 +933,10 @@ function init() {
     renderProducts();
     updateCartUI();
     loadBalance();
+
+    // Stats from localStorage
+    const statOrders = $('#statOrders');
+    if (statOrders) statOrders.textContent = getOrders().length;
 }
 
 document.addEventListener('DOMContentLoaded', init);
